@@ -9,6 +9,7 @@ import akka.routing.RoundRobinRouter
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps // for durations
+import play.api.Play.current
 import com.notnoop.apns._
 
 sealed trait PushMessage
@@ -142,7 +143,7 @@ class GcmDispatchWorker extends Actor {
     }
   }
 
-  def handleResponse(app: App, registrations: List[Registration], payload: JsObject, response: Response) = response.status match {
+  def handleResponse(app: App, registrations: List[Registration], payload: JsObject, response: WSResponse) = response.status match {
     case 200 => {
       // Success
       val elapsed = (System.currentTimeMillis - startTime).toFloat / 1000
@@ -193,12 +194,13 @@ class GcmDispatchWorker extends Actor {
         val Numeric = "\\A\\d+\\Z".r
 
         retryAfterHeader match {
-          case Numeric => {
-            val secs = retryAfterHeader.toInt
-            val log = "GCM server returned HTTP status code %i with Retry-After - will retry in %i seconds".format(status, secs)
-            Event.create(app.key, Event.Severity.ERROR, log)
-            retryAfter(secs seconds, app, registrations, payload)
-          }
+          //TODO fix this
+//          case Numeric => {
+//            val secs = retryAfterHeader.toInt
+//            val log = "GCM server returned HTTP status code %i with Retry-After - will retry in %i seconds".format(status, secs)
+//            Event.create(app.key, Event.Severity.ERROR, log)
+//            retryAfter(secs seconds, app, registrations, payload)
+//          }
           case _ => {
             DateParser.parseDate(retryAfterHeader) match {
               case Some(date) => {

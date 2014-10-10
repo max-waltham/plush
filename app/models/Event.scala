@@ -19,7 +19,12 @@ case class Event(date: Date, severity: Short, message: String) {
 
 object Event {
 
-  val redis = new RedisClient("localhost", 6379)
+  val host = System.getenv("REDIS_URL")
+  val port = System.getenv("REDIS_PORT").toInt
+  val db = System.getenv("REDIS_DB").toInt
+  val secr = Some(System.getenv("REDIS_SECRET"))
+
+  val redis = new RedisClient(host, port, db, secr)
   val maxEventsCount = 1000
 
   object Severity {
@@ -50,8 +55,7 @@ object Event {
     val log = Json.toJson(Map(
       "date" -> Json.toJson(System.currentTimeMillis()),
       "severity" -> Json.toJson(severity),
-      "message" -> Json.toJson(message)
-    ))
+      "message" -> Json.toJson(message)))
     redis.lpush("events:" + appKey, Json.stringify(log))
     redis.ltrim("events:" + appKey, 0, maxEventsCount - 1)
   }

@@ -43,16 +43,16 @@ object Users extends Controller {
       user => {
         val username = (Security.username -> user._1)
         request.session.get("uriBeforeLogin") map { uri =>
-          Redirect(uri).withSession(session - "uriBeforeLogin" + username)
+          Redirect(uri).withSession(request.session - "uriBeforeLogin" + username)
         } getOrElse {
-          Redirect(routes.Apps.index).withSession(session + username)
+          Redirect(routes.Apps.index).withSession(request.session + username)
         }
       }
     )
   }
 
   def logout = Action { implicit request =>
-    Redirect(routes.Users.login).withSession(session - Security.username).flashing("success" -> "You are now logged out")
+    Redirect(routes.Users.login).withSession(request.session - Security.username).flashing("success" -> "You are now logged out")
   }
 
   def add = Action { implicit request =>
@@ -82,10 +82,10 @@ trait Secured {
   def onUnauthorized(request: RequestHeader) =
     Results.Redirect(routes.Users.login).withSession("uriBeforeLogin" -> request.uri).flashing("error" -> "Login required")
 
-  def withAuth(f: => String => Request[AnyContent] => SimpleResult) =
+  def withAuth(f: => String => Request[AnyContent] => Result) =
     withAuth[AnyContent](BodyParsers.parse.anyContent)(f)
 
-  def withAuth[A](bp: BodyParser[A])(f: => String => Request[A] => SimpleResult) = {
+  def withAuth[A](bp: BodyParser[A])(f: => String => Request[A] => Result) = {
     Security.Authenticated(username, onUnauthorized) { user =>
       Action[A](bp)(request => f(user)(request))
     }

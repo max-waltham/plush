@@ -1,11 +1,13 @@
-name := "plush"
+name := """plush"""
 
-version := "1.1-SNAPSHOT"
+version := "1.0-SNAPSHOT"
 
-libraryDependencies := Seq(
-  "net.debasishg" %% "redisclient" % "2.10"
+lazy val root = (project in file(".")).enablePlugins(PlayScala)
+
+scalaVersion := "2.11.1"
+
+libraryDependencies ++= Seq(
+  "net.debasishg" % "redisclient_2.11" % "2.13",
+  "com.notnoop.apns" % "apns" % "0.2.0",
+  ws
 )
-
-scalacOptions := Seq("-feature")
-
-playScalaSettings
