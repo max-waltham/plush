@@ -24,7 +24,7 @@ object Event {
   val db = System.getenv("REDIS_DB").toInt
   val secr = Some(System.getenv("REDIS_SECRET"))
 
-  val redis = new RedisClient(host, port, db, secr)
+  def redis = new RedisClient(host, port, db, secr)
   val maxEventsCount = 1000
 
   object Severity {
