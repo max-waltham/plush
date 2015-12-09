@@ -17,7 +17,7 @@ case class Event(date: Date, severity: Short, message: String) {
 
 }
 
-object Event {
+object Event extends RedisConnection {
 
   val host = System.getenv("REDIS_URL")
   val port = System.getenv("REDIS_PORT").toInt
@@ -36,7 +36,7 @@ object Event {
     val CRITICAL: Short = 5
   }
 
-  def findAllByAppKey(appKey: String, offset: Int, count: Int) = {
+  def findAllByAppKey(appKey: String, offset: Int = 0, count: Int = 50): List[Event] = {
     redis.lrange("events:" + appKey, offset, count) map { list =>
       list.flatten map { jsonString =>
         val json = Json.parse(jsonString)
@@ -48,16 +48,20 @@ object Event {
     } getOrElse List()
   }
 
-  def countAllByAppKey(appKey: String) =
+  def countAllByAppKey(appKey: String): Long =
     redis.llen("events:" + appKey).getOrElse[Long](0)
 
-  def create(appKey: String, severity: Short, message: String) = {
+  def create(appKey: String, severity: Short, message: String): Boolean = {
     val log = Json.toJson(Map(
       "date" -> Json.toJson(System.currentTimeMillis()),
       "severity" -> Json.toJson(severity),
       "message" -> Json.toJson(message)))
     redis.lpush("events:" + appKey, Json.stringify(log))
     redis.ltrim("events:" + appKey, 0, maxEventsCount - 1)
+  }
+
+  def deleteByAppKey(appKey: String): Option[Long] = {
+    redis.del(s"events:$appKey")
   }
 
 }

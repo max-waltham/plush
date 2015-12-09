@@ -3,18 +3,16 @@ package models
 import com.redis._
 
 trait RedisConnection {
-
   val host = System.getenv("REDIS_URL")
   val port = System.getenv("REDIS_PORT").toInt
   val db = System.getenv("REDIS_DB").toInt
   val secr = Some(System.getenv("REDIS_SECRET"))
-
   def redis = new RedisClient(host, port, db, secr)
 }
 
 trait RedisModel extends RedisConnection {
 
-  def createOrUpdateHash(key: String, hash: Map[String, Any]) = {
+  def createOrUpdateHash(key: String, hash: Map[String, Any]): Boolean = {
     val noneFields = noneFieldsFromMap(hash)
     val valuesHash = valuesMapFromMap(hash)
 
