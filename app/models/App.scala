@@ -36,8 +36,7 @@ case class App(userId: Long, name: String, key: String, secret: String, masterSe
     // TODO: check cert password, try to read the cert with the password
   }
 
-  def isGcmEnabled =
-    !gcmApiKey.isEmpty
+  def isGcmEnabled = gcmApiKey.isDefined
 
   def hasIcon = iconFile.exists
 
@@ -81,9 +80,9 @@ object App extends RedisModel {
   }
 
   def delete(key: String): Boolean = {
-    App.findByKey(key).map(app => {
+    App.findByKey(key).exists(app => {
       app.delete
-    }).getOrElse(false)
+    })
   }
 
   def create(userId: Long, name: String, appMode: Int, debugMode: Boolean, iosCertPassword: Option[String], gcmApiKey: Option[String]): Option[String] = {

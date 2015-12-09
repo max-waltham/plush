@@ -19,12 +19,6 @@ case class Event(date: Date, severity: Short, message: String) {
 
 object Event extends RedisConnection {
 
-  val host = System.getenv("REDIS_URL")
-  val port = System.getenv("REDIS_PORT").toInt
-  val db = System.getenv("REDIS_DB").toInt
-  val secr = Some(System.getenv("REDIS_SECRET"))
-
-  def redis = new RedisClient(host, port, db, secr)
   val maxEventsCount = 1000
 
   object Severity {
