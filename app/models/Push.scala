@@ -1,22 +1,29 @@
 package models
 
-import play.api.libs.concurrent._
+import java.util.concurrent.TimeUnit
+
+import akka.actor._
+import com.relayrides.pushy.apns._
+import com.relayrides.pushy.apns.util.{SSLContextUtil, SimpleApnsPushNotification, TokenUtil}
+import play.Logger
+import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.ws._
-import play.Logger
-import akka.actor._
-import akka.routing.RoundRobinRouter
-import scala.concurrent.duration._
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.postfixOps // for durations
-import play.api.Play.current
-import com.notnoop.apns._
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 sealed trait PushMessage
+
 case class SendIosBroadcast(app: App, payload: JsObject) extends PushMessage
+
 case class SendIosNotifications(app: App, deviceTokens: List[DeviceToken], payload: JsObject) extends PushMessage
+
 case class StopIosWorkers(app: App) extends PushMessage
+
 case class SendGcmBroadcast(app: App, payload: JsObject) extends PushMessage
+
 case class SendGcmMessage(app: App, registrations: List[Registration], payload: JsObject) extends PushMessage
 
 object Push {
@@ -92,21 +99,55 @@ class GcmDispatcher extends Actor {
 
 }
 
-class IosDispatchWorker(app: App) extends Actor {
 
-  val builder = APNS.newService.withCert(app.certFile.getAbsolutePath, app.iosCertPassword.getOrElse("")).withAppleDestination(app.appMode == 1).withReconnectPolicy(ReconnectPolicy.Provided.EVERY_HALF_HOUR).asPool(15)
-  val service = if (app.debugMode) builder.build else builder.withNoErrorDetection.build
-  // TODO: test connection
+class IosDispatchWorker(app: App) extends Actor with ActorLogging {
+
+  class RejectedNotifications extends RejectedNotificationListener[SimpleApnsPushNotification] {
+
+    override def handleRejectedNotification(pushManager: PushManager[_ <: SimpleApnsPushNotification], notification: SimpleApnsPushNotification, rejectionReason: RejectedNotificationReason): Unit = {
+      log.warning(s"$notification was rejected with rejection reason $rejectionReason")
+    }
+  }
+
+  class FailedConnections extends FailedConnectionListener[SimpleApnsPushNotification] {
+    override def handleFailedConnection(pushManager: PushManager[_ <: SimpleApnsPushNotification], cause: Throwable): Unit = {
+      log.warning(s"failed connection: $cause")
+    }
+  }
+
+  val pushManager = new PushManager[SimpleApnsPushNotification](
+    ApnsEnvironment.getProductionEnvironment,
+    SSLContextUtil.createDefaultSSLContext(app.certFile.getAbsolutePath, app.iosCertPassword.getOrElse(throw new Exception("it seems that you must set a password for PKCS12 certificates"))),
+    null,
+    null,
+    null,
+    new PushManagerConfiguration(),
+    "DispatchWorkerPushManager"
+  )
+  pushManager.registerRejectedNotificationListener(new RejectedNotifications)
+  pushManager.registerFailedConnectionListener(new FailedConnections)
+  pushManager.start()
+  log.info(s"$pushManager created and started")
+
 
   def receive = {
     case SendIosNotifications(app, deviceTokens, payload) => {
       val startTime = System.currentTimeMillis
       val stringPayload = Json.stringify(payload)
-      deviceTokens foreach { token => service.push(token.value, stringPayload) }
+      deviceTokens foreach { token =>
+        val tokenBytes = TokenUtil.tokenStringToByteArray(token.value)
+        log.debug(s"for token=$token create bytes: $tokenBytes")
+        val notification = new SimpleApnsPushNotification(tokenBytes, stringPayload)
+        pushManager.getQueue.put(notification)
+      }
+      log.info(s"size after adding notifications=${pushManager.getQueue.size()}")
+      context.system.scheduler.scheduleOnce(Duration(5, TimeUnit.SECONDS), self, "status")
       val elapsed = (System.currentTimeMillis - startTime).toFloat / 1000
-      val log = "Successfully delivered %d iOS notifications in %.3f seconds".format(deviceTokens.length, elapsed)
-      Event.create(app.key, Event.Severity.INFO, log)
+      val logMsg = "Successfully delivered %d iOS notifications in %.3f seconds".format(deviceTokens.length, elapsed)
+      Event.create(app.key, Event.Severity.INFO, logMsg)
     }
+    case "status" =>
+      log.info(s"status: size=${pushManager.getQueue.size()}")
   }
 
   // TODO: handle debug mode
