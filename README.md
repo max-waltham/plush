@@ -112,7 +112,6 @@ Lots:
 * Pool of GCM workers.
 * Better home page with a quick overview of all apps.
 * Implement the Akka supervision strategies.
-* Use Akka IO (or another non-blocking library like spray-io) for sending iOS notifications, in order to drop the java-apns dependency.
 * Factor out and clean up the Redis related code.
 * Layout improvements in the Web admin interface.
 * Device alias and tags to ease building a recipients list. Send notifications by device(e) and/or alias(es) and/or tag(s).
