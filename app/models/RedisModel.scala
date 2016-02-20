@@ -6,7 +6,10 @@ trait RedisConnection {
   val host = System.getenv("REDIS_URL")
   val port = System.getenv("REDIS_PORT").toInt
   val db = System.getenv("REDIS_DB").toInt
-  val secr = Some(System.getenv("REDIS_SECRET"))
+  val secr = System.getenv("REDIS_SECRET") match {
+    case s:String if !s.isEmpty => Some(s)
+    case _ => None
+  }
   def redis = new RedisClient(host, port, db, secr)
 }
 
