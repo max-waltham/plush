@@ -27,6 +27,9 @@ object Users extends Controller {
     ) verifying("Passwords don't match", result => result match {
       case (email, password, passwordConfirmation) => password == passwordConfirmation
     })
+      verifying("Account already exists", result => result match {
+      case (email, password, passwordConfirmation) => User.findByEmail(email).isEmpty
+    })
   )
 
   def index = Action {

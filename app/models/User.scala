@@ -15,18 +15,20 @@ object User extends RedisModel {
     PasswordUtil.authenticate(password, user.encryptedPassword)
   } getOrElse false
 
-  def findByEmail(email: String): Option[User] = redis.hgetall("user:" + email) map { m =>
+  def findByEmail(email: String): Option[User] = redis.hgetall("user:" + email.toLowerCase) map { m =>
     if (m.nonEmpty) Some(fromMap(m)) else None
   } getOrElse None
 
   def create(email: String, password: String): Boolean = {
     val encryptedPassword = PasswordUtil.encryptPassword(password)
-    val attrs = Map("email" -> email, "encryptedPassword" -> encryptedPassword)
-    createOrUpdateHash("user:" + email, attrs)
+    val lowerEmail = email.toLowerCase
+    val attrs = Map("email" -> lowerEmail, "encryptedPassword" -> encryptedPassword)
+    createOrUpdateHash("user:" + lowerEmail, attrs)
   }
 
   def delete(email: String): Option[Long] = {
-    redis.del(s"user:$email")
+    val lowerEmail = email.toLowerCase
+    redis.del(s"user:$lowerEmail")
   }
 
 }
