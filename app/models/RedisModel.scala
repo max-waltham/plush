@@ -1,15 +1,18 @@
 package models
 
 import com.redis._
+import play.api.Play
+import play.api.Play.current
 
 trait RedisConnection {
-  val host = System.getenv("REDIS_URL")
-  val port = System.getenv("REDIS_PORT").toInt
-  val db = System.getenv("REDIS_DB").toInt
-  val secr = System.getenv("REDIS_SECRET") match {
-    case s:String if !s.isEmpty => Some(s)
-    case _ => None
-  }
+
+  def get(name: String): Option[String] = Play.configuration.getString(name)
+
+  val host = get("redis.REDIS_URL").getOrElse("localhost")
+  val port = get("redis.REDIS_PORT").map(_.toInt).getOrElse(6379)
+  val db = get("redis.REDIS_DB").map(_.toInt).getOrElse(0)
+  val secr = get("redis.REDIS_SECRET")
+
   def redis = new RedisClient(host, port, db, secr)
 }
 
