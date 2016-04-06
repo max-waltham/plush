@@ -1,16 +1,18 @@
 package models
 
 import com.redis._
+import play.api.Play
+import play.api.Play.current
+import utils.RedisConf
 
 trait RedisConnection {
-  val host = System.getenv("REDIS_URL")
-  val port = System.getenv("REDIS_PORT").toInt
-  val db = System.getenv("REDIS_DB").toInt
-  val secr = System.getenv("REDIS_SECRET") match {
-    case s:String if !s.isEmpty => Some(s)
-    case _ => None
-  }
-  def redis = new RedisClient(host, port, db, secr)
+
+  def redis = new RedisClient(
+    RedisConf.host,
+    RedisConf.port,
+    RedisConf.db,
+    RedisConf.secret
+  )
 }
 
 trait RedisModel extends RedisConnection {

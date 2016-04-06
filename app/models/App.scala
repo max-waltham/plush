@@ -1,6 +1,7 @@
 package models
 
 import com.redis._
+import utils.StorageConf
 
 case class App(userId: Long, name: String, key: String, secret: String, masterSecret: String,
   appMode: Int, debugMode: Boolean, iosCertPassword: Option[String], gcmApiKey: Option[String]) extends RedisModel {
@@ -25,9 +26,9 @@ case class App(userId: Long, name: String, key: String, secret: String, masterSe
     }
   }
 
-  def iconFile = file("icons", "png")
+  def iconFile = file(StorageConf.icons, "png")
 
-  def certFile = file("certs", "pem")
+  def certFile = file(StorageConf.certs, "pem")
 
   def isIosEnabled = {
     import java.io.File
