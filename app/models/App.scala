@@ -47,7 +47,7 @@ case class App(userId: Long, name: String, key: String, secret: String, masterSe
     import java.io.File
     import play.api.Play
     import play.api.Play.current
-    Play.application.getFile(dir + File.separator + key + "." + ext)
+    new File(dir + File.separator + key + "." + ext)
   }
 
 }
