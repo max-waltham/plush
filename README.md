@@ -43,13 +43,7 @@ In short:
 As plush is a standard Play application, you can find detailed informations on how to run it on the [Play website](http://www.playframework.org/documentation/2.0.4/Production).
 
 To run/debug the app in localhost, be sure to properly set redis env variables:
-
-```
-export REDIS_URL=localhost
-export REDIS_SECRET=<yourpw>
-export REDIS_PORT=6379
-export REDIS_DB=0
-```
+(redis env set to `<project_dir>/conf/application.conf`)
 
 ### Using the Web admin interface
 
